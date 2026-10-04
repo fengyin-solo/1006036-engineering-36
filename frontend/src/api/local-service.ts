@@ -1,5 +1,6 @@
 import { MODULE_BY_KEY } from '@/data/modules'
-import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
+import { allRows, listRows, saveRows } from '@/data/local-store'
+import { resetModuleRows } from '@/data/seeder'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
@@ -56,8 +57,12 @@ export function runAction(key: string, id: number, action: string): ActionResult
   return { ok: true, message: `${meta.entity}已${action}，当前状态「${target}」` }
 }
 
-export function resetModule(key: string): PageResult {
-  resetRows(key)
+/**
+ * 重置指定模块：只用最新种子定义重建这一个模块，其他模块的本地记录保持不动。
+ * 取不到种子定义会抛 SeedDefinitionError，调用方提示后可重试。
+ */
+export async function resetModule(key: string): Promise<PageResult> {
+  await resetModuleRows(key)
   return listEntries(key)
 }
 

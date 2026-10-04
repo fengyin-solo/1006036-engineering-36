@@ -3,9 +3,9 @@
 面向航班保障、机位分配、廊桥靠接、摆渡车调度、行李装卸、航油加注、除冰作业与延误处置的一体化机场地面保障作业工作台。
 
 这是一个**纯前端**管理平台：Vue 3 + Vite + TypeScript，仓库里没有后端服务。业务数据由
-`frontend/src/data/` 下的本地数据层提供：首次打开用示例数据播种，之后的登记、筛选与状态流转
-结果都持久化在浏览器 `localStorage` 里，刷新或重开浏览器都还在。dev server 已关掉自动打开页面，
-启动后按终端打印的地址手工打开。
+`frontend/src/data/` 下的本地数据层提供：首次启动时按种子定义播种示例数据（幂等、可断点
+续跑），之后的登记、筛选与状态流转结果都按模块分别持久化在浏览器 `localStorage` 里，
+刷新或重开浏览器都还在。dev server 已关掉自动打开页面，启动后按终端打印的地址手工打开。
 
 ## 目录结构
 
@@ -14,9 +14,10 @@
 ├── frontend/                 Vue 3 + Vite + TypeScript 前端（唯一运行单元）
 │   ├── src/views/            每个业务模块一个页面
 │   ├── src/api/local-service.ts   本地数据服务：列表、筛选、动作流转、导出
-│   ├── src/data/             模块元数据 / 示例数据 / localStorage 持久化
-│   ├── src/stores/           会话与筛选状态
+│   ├── src/data/             模块元数据 / 种子计划与派生 / 按模块分键的 localStorage 持久化
+│   ├── src/stores/           会话与播种状态
 │   └── vite.config.ts        dev server 配置（open: false，无 /api 代理）
+├── docs/seed-pipeline.md     示例数据播种链路分步说明
 ├── .gitignore
 └── docker-compose.yml
 ```
@@ -65,7 +66,11 @@ npm run build
 
 - 每个模块的页面在 `frontend/src/views/<模块>/index.vue`，页面只负责渲染，读写统一走
   `frontend/src/api/local-service.ts`。
-- 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
-  `frontend/src/data/seed.ts`。
+- 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据由
+  `frontend/src/data/seed-plan.ts`（静态计划）+ `frontend/src/data/seed-definition.ts`
+  （从模块元数据派生样例行）共同生成，字段/状态改了样例自动跟随，不用逐条手改。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
-- 想回到初始数据：清掉浏览器里 `airport-ground-ops:entries` 这一项，或调用 `resetModule(模块)`。
+- 每个模块的本地数据各占一个 localStorage 键，重置单个模块（如延误处置页的
+  「重建延误示例数据」，或调用 `resetModule(模块)`）只重建该模块，其他模块的记录不动。
+- 播种链路的完整分步说明（种子定义、播种时机、持久化层、重置入口、幂等与断点续跑）
+  见 [docs/seed-pipeline.md](docs/seed-pipeline.md)。

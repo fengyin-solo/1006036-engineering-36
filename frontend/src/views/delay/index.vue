@@ -8,6 +8,9 @@
       <div class="page-actions">
         <button class="btn primary" type="button" @click="openCreate">登记延误事件</button>
         <button class="btn" type="button" @click="exportRows">导出延误处置清单</button>
+        <button class="btn ghost" type="button" :disabled="resetting" @click="resetSeed">
+          {{ resetting ? '重建中…' : '重建延误示例数据' }}
+        </button>
       </div>
     </header>
 
@@ -77,6 +80,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  resetModule,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -90,6 +94,7 @@ const stats = [{"label": "待处置事件", "value": 0}, {"label": "处置中事
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+const resetting = ref(false)
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
@@ -110,6 +115,21 @@ function exportRows() {
 
 function openCreate() {
   errorMessage.value = '延误事件登记入口尚未接入审批流'
+}
+
+// 只重建延误模块的示例数据，其他模块的本地记录保持不动；失败可重试。
+async function resetSeed() {
+  resetting.value = true
+  errorMessage.value = ''
+  try {
+    await resetModule(meta.key)
+    reload()
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? `${error.message}，可重试` : '延误示例数据重建失败，可重试'
+  } finally {
+    resetting.value = false
+  }
 }
 
 function runAction(action: string, row: EntryRow) {
